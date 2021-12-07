@@ -1,85 +1,71 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
+import axios from "axios";
 import './ForecastTab.css';
 
-function ForecastTab() {
-  return (
-    <div className="tab-wrapper">
-      <article className="forecast-day">
-        <p className="day-description">
-          Maandag
-        </p>
+const apiKey = '8cc8426113414b7a7508942f1d1fd56f'
 
-        <section className="forecast-weather">
-            <span>
-              12&deg; C
-            </span>
-          <span className="weather-description">
-              Licht Bewolkt
-            </span>
-        </section>
-      </article>
+function ForecastTab({coordinates}) {
+    const [forecasts, setForecasts] = useState([]);
+    const [error, toggleError] = useState(false);
+    const [loading, toggleLoading] = useState(false);
 
-      <article className="forecast-day">
-        <p className="day-description">
-          Maandag
-        </p>
+    function createDateString(timestamp) {
+        const day = new Date(timestamp * 1000);
+        return day.toLocaleDateString('nl-NL', {weekday: 'long'});
+    }
 
-        <section className="forecast-weather">
-            <span>
-              12&deg; C
-            </span>
-          <span className="weather-description">
-              Licht Bewolkt
-            </span>
-        </section>
-      </article>
+    useEffect(() => {
+        async function fetchData() {
+            toggleError(false);
+            toggleLoading(true);
 
-      <article className="forecast-day">
-        <p className="day-description">
-          Maandag
-        </p>
+            try {
+                const result = await axios.get(`https://api.openweathermap.org/data/2.5/onecall?lat=${coordinates.lat}&lon=${coordinates?.lon}&exclude=minutely,current,hourly&appid=${apiKey}&lang=nl`);
+                console.log(result.data);
+                setForecasts(result.data.daily.slice(0, 5));
+            } catch (e) {
+                console.error(e);
+                toggleError(true);
+            }
+        }
+        toggleLoading(false);
 
-        <section className="forecast-weather">
-            <span>
-              12&deg; C
-            </span>
-          <span className="weather-description">
-              Licht Bewolkt
-            </span>
-        </section>
-      </article>
+        if (coordinates) {
+            fetchData();
+        }
+    }, [coordinates]);
 
-      <article className="forecast-day">
-        <p className="day-description">
-          Maandag
-        </p>
+    return (
+        <div className="tab-wrapper">
+            {error && <span>Er is iets misgegaan met het ophalen van de data</span>}
+            {loading && <span>Loading...</span>}
+            {forecasts.length === 0 && !error &&
+            <span className="no-forecast">
+                Zoek eerst een locatie om het weer voor deze week te bekijken
+            </span>
+            }
+            {forecasts.map((day) => {
+                return (
+                    <article className="forecast-day" key={day.dt}>
+                        <p className="day-description">
+                            {createDateString(day.dt)}
+                        </p>
 
-        <section className="forecast-weather">
-            <span>
-              12&deg; C
-            </span>
-          <span className="weather-description">
-              Licht Bewolkt
-            </span>
-        </section>
-      </article>
+                        <section className="forecast-weather">
+                <span>
+            {day.temp.day}
+                </span>
 
-      <article className="forecast-day">
-        <p className="day-description">
-          Maandag
-        </p>
 
-        <section className="forecast-weather">
-            <span>
-              12&deg; C
-            </span>
-          <span className="weather-description">
-              Licht Bewolkt
-            </span>
-        </section>
-      </article>
-    </div>
-  );
+                            <span className="weather-description">
+            {day.weather[0].description}
+                </span>
+                        </section>
+                    </article>
+                );
+            })}
+        </div>
+    );
 };
 
 export default ForecastTab;
