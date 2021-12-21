@@ -1,10 +1,18 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect, NavLink } from 'react';
 import axios from 'axios';
 import SearchBar from './components/searchBar/SearchBar';
 import TabBarMenu from './components/tabBarMenu/TabBarMenu';
 import MetricSlider from './components/metricSlider/MetricSlider';
 import './App.css';
-import ForecastTab from "./pages/forecastTab/ForecastTab";
+import TodayTab from './pages/todayTab/TodayTab';
+import ForecastTab from './pages/forecastTab/ForecastTab';
+import kelvinToCelsius from "./helpers/kelvinToCelsius";
+
+import {
+  BrowserRouter as Router,
+    Switch,
+    Route
+} from 'react-router-dom';
 
 
 const apiKey = '8cc8426113414b7a7508942f1d1fd56f';
@@ -55,26 +63,37 @@ function App() {
             <>
               <h2>{weatherData.weather[0].description}</h2>
               <h3>{weatherData.name}</h3>
-              <h1>{weatherData.main.temp}</h1>
+              <h1>{kelvinToCelsius(weatherData.main.temp)}</h1>
             </>
             }
 
               {/*<button type="button" onClick={fetchData}>*/}
               {/*  Haal data op!*/}
               {/*</button>*/}
-          </span>
+            </span>
           </div>
 
           {/*CONTENT ------------------ */}
-          <div className="weather-content">
-            <TabBarMenu/>
+          <Router>
+            <div className="weather-content">
+              <TabBarMenu/>
 
-            <div className="tab-wrapper">
-              <ForecastTab coordinates={weatherData.coord}/>
+
+              <Switch>
+                <div className="tab-wrapper">
+                  <Route path="/komende-week">
+                    <ForecastTab coordinates={weatherData.coord}/>
+                  </Route>
+                  <Route path="/" exact>
+                    <TodayTab/>
+                  </Route>
+                </div>
+              </Switch>
             </div>
-          </div>
+          </Router>
 
           <MetricSlider/>
+
         </div>
       </>
   );
