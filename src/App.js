@@ -1,12 +1,12 @@
-import React, { useState, useEffect, NavLink } from 'react';
+import React, {useState, useEffect, useContext} from 'react';
 import axios from 'axios';
 import SearchBar from './components/searchBar/SearchBar';
 import TabBarMenu from './components/tabBarMenu/TabBarMenu';
 import MetricSlider from './components/metricSlider/MetricSlider';
+import ForecastTab from './pages/forecastTab/ForecastTab';
+import { TempContext } from "./context/TempContextProvider";
 import './App.css';
 import TodayTab from './pages/todayTab/TodayTab';
-import ForecastTab from './pages/forecastTab/ForecastTab';
-import kelvinToCelsius from "./helpers/kelvinToCelsius";
 
 import {
   BrowserRouter as Router,
@@ -15,26 +15,29 @@ import {
 } from 'react-router-dom';
 
 
-const apiKey = '8cc8426113414b7a7508942f1d1fd56f';
 
 function App() {
   const [weatherData, setWeatherData] = useState({});
   const [location, setLocation] = useState('');
-  const [error, toggleError] = useState(false);
+  const [error, setError] = useState(false);
+  const [loading, toggleLoading] = useState(false);
+
+  const { kelvinToMetric } = useContext(TempContext);
 
 
   useEffect(() => {
     // 1. we definieren de functie useEffect
     async function fetchData() {
-      toggleError(false);
+      setError(false);
+      toggleLoading(true);
 
       try {
-        const result = await axios.get(`https://api.openweathermap.org/data/2.5/weather?q=${location},nl&appid=${apiKey}&lang=nl`);
+        const result = await axios.get(`https://api.openweathermap.org/data/2.5/weather?q=${location},nl&appid=${process.env.REACT_APP_API_KEY}&lang=nl`);
         setWeatherData(result.data);
       } catch (e) {
         //de error wordt weergegeven in de console
         console.error(e);
-        toggleError(true)
+        setError(true);
       }
     };
 
@@ -44,6 +47,7 @@ function App() {
     }
     // de code wordt alleen afgevuurd als location veranderd
   }, [location]);
+
 
   return (
       <>
@@ -55,15 +59,17 @@ function App() {
             {error &&
             <span className="wrong-location-error">
                   Oeps! Deze locatie bestaat niet
-                </span>
+            </span>
             }
 
             <span className="location-details">
+              {loading && (<span>Loading...</span>)}
+
             {Object.keys(weatherData).length > 0 &&
             <>
               <h2>{weatherData.weather[0].description}</h2>
               <h3>{weatherData.name}</h3>
-              <h1>{kelvinToCelsius(weatherData.main.temp)}</h1>
+              <h1>{kelvinToMetric(weatherData.main.temp)}</h1>
             </>
             }
 
@@ -78,17 +84,16 @@ function App() {
             <div className="weather-content">
               <TabBarMenu/>
 
-
-              <Switch>
-                <div className="tab-wrapper">
+              <div className="tab-wrapper">
+                <Switch>
+                  <Route exact path="/">
+                    <TodayTab coordinates={weatherData && weatherData.coord} />
+                  </Route>
                   <Route path="/komende-week">
-                    <ForecastTab coordinates={weatherData.coord}/>
+                    <ForecastTab coordinates={weatherData && weatherData.coord} />
                   </Route>
-                  <Route path="/" exact>
-                    <TodayTab/>
-                  </Route>
-                </div>
-              </Switch>
+                </Switch>
+              </div>
             </div>
           </Router>
 

@@ -1,36 +1,35 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import axios from "axios";
+import { TempContext } from '../../context/TempContextProvider';
 import './ForecastTab.css';
-import kelvinToCelsius from "../../helpers/kelvinToCelsius";
 import createDateString from "../../helpers/createDateString";
+import iconMapper from "../../helpers/iconMapper";
 
-const apiKey = '8cc8426113414b7a7508942f1d1fd56f'
+
 
 function ForecastTab({coordinates}) {
     const [forecasts, setForecasts] = useState([]);
-    const [error, toggleError] = useState(false);
+    const [error, setError] = useState(false);
     const [loading, toggleLoading] = useState(false);
 
-    function createDateString(timestamp) {
-        const day = new Date(timestamp * 1000);
-        return day.toLocaleDateString('nl-NL', {weekday: 'long'});
-    }
+    const { kelvinToMetric } = useContext(TempContext);
+
 
     useEffect(() => {
         async function fetchData() {
-            toggleError(false);
+            setError(false);
             toggleLoading(true);
 
             try {
-                const result = await axios.get(`https://api.openweathermap.org/data/2.5/onecall?lat=${coordinates.lat}&lon=${coordinates?.lon}&exclude=minutely,current,hourly&appid=${apiKey}&lang=nl`);
-                console.log(result.data);
+                const result = await axios.get(`https://api.openweathermap.org/data/2.5/onecall?lat=${coordinates.lat}&lon=${coordinates?.lon}&exclude=minutely,current,hourly&appid=${process.env.REACT_APP_API_KEY}&lang=nl`);
                 setForecasts(result.data.daily.slice(0, 5));
-            } catch (e) {
+                toggleLoading(false)
+;            } catch (e) {
                 console.error(e);
-                toggleError(true);
+                setError(true);
+                toggleLoading(false);
             }
         }
-        toggleLoading(false);
 
         if (coordinates) {
             fetchData();
@@ -39,33 +38,37 @@ function ForecastTab({coordinates}) {
 
     return (
         <div className="tab-wrapper">
-            {error && <span>Er is iets misgegaan met het ophalen van de data</span>}
-            {loading && <span>Loading...</span>}
-            {forecasts.length === 0 && !error &&
-            <span className="no-forecast">
-                Zoek eerst een locatie om het weer voor deze week te bekijken
-            </span>
-            }
-            {forecasts.map((day) => {
+            {forecasts && forecasts.map((forecast) => {
                 return (
-                    <article className="forecast-day" key={day.dt}>
+                    <article className="forecast-day" key={forecast.dt}>
                         <p className="day-description">
-                            {createDateString(day.dt)}
+                            {createDateString(forecast.dt)}
                         </p>
-
                         <section className="forecast-weather">
-                <span>
-            {kelvinToCelsius(day.temp.day)}
-                </span>
-
+                            <span>
+                                {iconMapper(forecast.weather[0].main)}
+                            </span>
+                            <span>
+                                {kelvinToMetric(forecast.temp.day)}
+                            </span>
 
                             <span className="weather-description">
-            {day.weather[0].description}
-                </span>
+                                {forecast.weather[0].description}
+                            </span>
                         </section>
                     </article>
                 );
             })}
+
+            {!forecasts && !error && (
+                <span className="no-forecast">
+                Zoek eerst een locatie om het weer voor deze week te bekijken
+                </span>
+            )}
+
+            {error && <span>Er is iets misgegaan met het ophalen van de data</span>}
+
+            {loading && <span>Loading...</span>}
         </div>
     );
 };
